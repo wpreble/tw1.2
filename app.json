@@ -8,7 +8,7 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "extra": {
-      "apiUrl": "http://localhost:3000"
+      "apiUrl": "http://21.0.0.206:3000"
     },
     "splash": {
       "image": "./assets/splash-icon.png",
