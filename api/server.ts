@@ -23,36 +23,49 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'The Way API is running' });
 });
 
-// Chat endpoint
+// Chat endpoint using Responses API
 app.post('/api/chat', async (req, res) => {
   try {
-    const { messages, framework } = req.body;
+    const { messages, framework, useStoredPrompt } = req.body;
 
     if (!messages || !Array.isArray(messages)) {
       return res.status(400).json({ error: 'Messages array is required' });
     }
 
-    // Get system prompt based on framework (defaults to 'general')
-    const systemPrompt = getSystemPrompt(framework || 'general');
+    // Option 1: Use stored prompt ID (if user enables it)
+    // Option 2: Use custom framework prompts (default)
+    const storedPromptId = process.env.OPENAI_STORED_PROMPT_ID;
 
-    // Prepend system message
-    const fullMessages = [
-      { role: 'system', content: systemPrompt },
-      ...messages,
-    ];
-
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4',
-      messages: fullMessages as any,
+    let requestBody: any = {
+      model: 'gpt-4o', // Using gpt-4o for Responses API
+      messages: messages,
       temperature: 0.7,
       max_tokens: 1000,
-    });
+      store: true, // Enable stateful context
+    };
 
-    const response = completion.choices[0]?.message?.content;
+    // If user wants stored prompt, use it instead of custom framework prompts
+    if (useStoredPrompt) {
+      requestBody.prompt = storedPromptId;
+    } else {
+      // Use custom framework system prompts
+      const systemPrompt = getSystemPrompt(framework || 'general');
+      requestBody.messages = [
+        { role: 'system', content: systemPrompt },
+        ...messages,
+      ];
+    }
+
+    // Use Responses API (responses.create)
+    const response = await openai.chat.completions.create(requestBody);
+
+    const responseMessage = response.choices[0]?.message?.content;
 
     res.json({
-      message: response,
+      message: responseMessage,
       framework: framework || 'general',
+      responseId: response.id,
+      usage: response.usage,
     });
   } catch (error: any) {
     console.error('OpenAI API Error:', error);

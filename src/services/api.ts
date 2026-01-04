@@ -19,7 +19,8 @@ export class ApiService {
 
   async sendMessage(
     messages: Message[],
-    framework: Framework = 'general'
+    framework: Framework = 'general',
+    useStoredPrompt: boolean = true // Default to using stored prompt
   ): Promise<string> {
     try {
       // Convert messages to OpenAI format (only user and assistant messages)
@@ -33,6 +34,7 @@ export class ApiService {
       const response = await axios.post<ChatResponse>(`${API_URL}/api/chat`, {
         messages: apiMessages,
         framework,
+        useStoredPrompt, // Pass the stored prompt flag
       });
 
       return response.data.message;
