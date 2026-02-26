@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { Message, ChatResponse, Framework } from '../types';
 import Constants from 'expo-constants';
+import { supabase } from './supabase';
 
 // Get API URL from environment or use localhost
 const API_URL = Constants.expoConfig?.extra?.apiUrl || 'http://localhost:3000';
@@ -20,9 +21,13 @@ export class ApiService {
   async sendMessage(
     messages: Message[],
     framework: Framework = 'general',
-    useStoredPrompt: boolean = true // Default to using stored prompt
+    useStoredPrompt: boolean = false // Default to custom framework prompts
   ): Promise<string> {
     try {
+      // Get auth token
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
       // Convert messages to OpenAI format (only user and assistant messages)
       const apiMessages = messages
         .filter(m => m.role !== 'system')
@@ -31,11 +36,17 @@ export class ApiService {
           content: m.content,
         }));
 
-      const response = await axios.post<ChatResponse>(`${API_URL}/api/chat`, {
-        messages: apiMessages,
-        framework,
-        useStoredPrompt, // Pass the stored prompt flag
-      });
+      const response = await axios.post<ChatResponse>(
+        `${API_URL}/api/chat`,
+        {
+          messages: apiMessages,
+          framework,
+          useStoredPrompt, // Pass the stored prompt flag
+        },
+        {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        }
+      );
 
       return response.data.message;
     } catch (error: any) {

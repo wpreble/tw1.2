@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import OpenAI from 'openai';
+import { createClient } from '@supabase/supabase-js';
 
 // Load environment variables
 dotenv.config({ path: '.env.local' });
@@ -18,13 +19,44 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+// Initialize Supabase (for auth verification)
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY!
+);
+
+// Auth middleware
+async function requireAuth(req: any, res: any, next: any) {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Unauthorized - No token provided' });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data, error } = await supabase.auth.getUser(token);
+
+    if (error || !data.user) {
+      return res.status(401).json({ error: 'Unauthorized - Invalid token' });
+    }
+
+    // Attach user to request
+    req.user = data.user;
+    next();
+  } catch (error: any) {
+    console.error('Auth middleware error:', error);
+    return res.status(401).json({ error: 'Unauthorized - Auth failed' });
+  }
+}
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'The Way API is running' });
 });
 
-// Chat endpoint using Responses API
-app.post('/api/chat', async (req, res) => {
+// Chat endpoint using Responses API (protected)
+app.post('/api/chat', requireAuth, async (req, res) => {
   try {
     const { messages, framework, useStoredPrompt } = req.body;
 
@@ -32,32 +64,50 @@ app.post('/api/chat', async (req, res) => {
       return res.status(400).json({ error: 'Messages array is required' });
     }
 
-    // Option 1: Use stored prompt ID (if user enables it)
-    // Option 2: Use custom framework prompts (default)
     const storedPromptId = process.env.OPENAI_STORED_PROMPT_ID;
 
-    let requestBody: any = {
-      model: 'gpt-4o', // Using gpt-4o for Responses API
-      messages: messages,
-      temperature: 0.7,
-      max_tokens: 1000,
-      store: true, // Enable stateful context
-    };
+    let response: any;
 
-    // If user wants stored prompt, use it instead of custom framework prompts
-    if (useStoredPrompt) {
-      requestBody.prompt = storedPromptId;
+    // Use stored prompt (pmpt_...) or custom framework system prompts
+    if (useStoredPrompt && storedPromptId) {
+      // Option 1: Use Responses API with stored prompt
+      // Note: Responses API is accessed via openai.beta.chat.completions.parse
+      // For now, we'll use chat completions with system prompt injected
+      // TODO: Update when official Responses API SDK support is available
+
+      // Convert messages to OpenAI format
+      const formattedMessages = messages.map((m: any) => ({
+        role: m.role,
+        content: m.content
+      }));
+
+      response = await openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: formattedMessages,
+        temperature: 0.7,
+        max_tokens: 1500,
+        store: true, // Enable caching for better performance
+      });
     } else {
-      // Use custom framework system prompts
+      // Option 2: Use custom framework system prompts
       const systemPrompt = getSystemPrompt(framework || 'general');
-      requestBody.messages = [
-        { role: 'system', content: systemPrompt },
-        ...messages,
-      ];
-    }
 
-    // Use Responses API (responses.create)
-    const response = await openai.chat.completions.create(requestBody);
+      const formattedMessages = [
+        { role: 'system', content: systemPrompt },
+        ...messages.map((m: any) => ({
+          role: m.role,
+          content: m.content
+        }))
+      ];
+
+      response = await openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: formattedMessages,
+        temperature: 0.7,
+        max_tokens: 1500,
+        store: true,
+      });
+    }
 
     const responseMessage = response.choices[0]?.message?.content;
 

@@ -14,6 +14,7 @@ import {
 import { Message, Framework } from '../types';
 import { apiService } from '../services/api';
 import { storageService } from '../services/storage';
+import { authService } from '../services/auth';
 import { FRAMEWORKS } from '../constants/frameworks';
 
 export default function ChatScreen() {
@@ -102,6 +103,23 @@ export default function ChatScreen() {
     );
   };
 
+  const handleSignOut = () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            await authService.signOut();
+          },
+        },
+      ]
+    );
+  };
+
   const currentFrameworkInfo = FRAMEWORKS.find(f => f.id === currentFramework);
 
   return (
@@ -128,9 +146,14 @@ export default function ChatScreen() {
           <Text style={styles.frameworkText}>{currentFrameworkInfo?.title}</Text>
           <Text style={styles.frameworkArrow}>{showFrameworks ? '▲' : '▼'}</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={handleClearChat}>
-          <Text style={styles.clearButton}>Clear</Text>
-        </TouchableOpacity>
+        <View style={styles.headerButtons}>
+          <TouchableOpacity onPress={handleClearChat}>
+            <Text style={styles.clearButton}>Clear</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleSignOut}>
+            <Text style={styles.signOutButton}>Sign Out</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Framework Dropdown */}
@@ -409,5 +432,14 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 15,
     fontWeight: '600',
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  signOutButton: {
+    fontSize: 14,
+    color: '#999',
+    padding: 4,
   },
 });

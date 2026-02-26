@@ -9,6 +9,8 @@ export default {
     newArchEnabled: true,
     extra: {
       apiUrl: process.env.API_URL || "http://localhost:3000",
+      supabaseUrl: process.env.SUPABASE_URL || "https://gbcptmhtegfbntbhithe.supabase.co",
+      supabaseAnonKey: process.env.SUPABASE_ANON_KEY || "sb_publishable_r_y3Ccjz6UJoe1ijd6GfKg_oMJ-T_DO",
       eas: {
         projectId: "your-project-id-here" // Will be set by eas build:configure
       }
@@ -36,6 +38,10 @@ export default {
     web: {
       favicon: "./assets/favicon.png"
     },
-    plugins: []
+    plugins: [
+      "expo-apple-authentication",
+      "@react-native-google-signin/google-signin"
+    ],
+    scheme: "theway"
   }
 };
