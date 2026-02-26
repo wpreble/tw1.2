@@ -25,20 +25,26 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY!
 );
 
-// Auth middleware
-async function requireAuth(req: any, res: any, next: any) {
+// Auth middleware (optional for web preview)
+async function optionalAuth(req: any, res: any, next: any) {
   try {
     const authHeader = req.headers.authorization;
 
+    // If no auth header, continue without user (for web preview)
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'Unauthorized - No token provided' });
+      console.log('No auth token - allowing request for web preview');
+      req.user = null;
+      return next();
     }
 
     const token = authHeader.replace('Bearer ', '');
     const { data, error } = await supabase.auth.getUser(token);
 
     if (error || !data.user) {
-      return res.status(401).json({ error: 'Unauthorized - Invalid token' });
+      // For now, allow requests without valid auth (web preview mode)
+      console.log('Invalid token - allowing request for web preview');
+      req.user = null;
+      return next();
     }
 
     // Attach user to request
@@ -46,7 +52,9 @@ async function requireAuth(req: any, res: any, next: any) {
     next();
   } catch (error: any) {
     console.error('Auth middleware error:', error);
-    return res.status(401).json({ error: 'Unauthorized - Auth failed' });
+    // Allow request anyway for web preview
+    req.user = null;
+    next();
   }
 }
 
@@ -55,8 +63,8 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'The Way API is running' });
 });
 
-// Chat endpoint using Responses API (protected)
-app.post('/api/chat', requireAuth, async (req, res) => {
+// Chat endpoint using Responses API (auth optional for web preview)
+app.post('/api/chat', optionalAuth, async (req, res) => {
   try {
     const { messages, framework, useStoredPrompt } = req.body;
 

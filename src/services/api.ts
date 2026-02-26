@@ -2,6 +2,7 @@ import axios from 'axios';
 import { Message, ChatResponse, Framework } from '../types';
 import Constants from 'expo-constants';
 import { supabase } from './supabase';
+import { Platform } from 'react-native';
 
 // Get API URL from environment or use localhost
 const API_URL = Constants.expoConfig?.extra?.apiUrl || 'http://localhost:3000';
@@ -24,9 +25,12 @@ export class ApiService {
     useStoredPrompt: boolean = false // Default to custom framework prompts
   ): Promise<string> {
     try {
-      // Get auth token
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
+      // Get auth token (skip on web for preview)
+      let token = undefined;
+      if (Platform.OS !== 'web') {
+        const { data: { session } } = await supabase.auth.getSession();
+        token = session?.access_token;
+      }
 
       // Convert messages to OpenAI format (only user and assistant messages)
       const apiMessages = messages

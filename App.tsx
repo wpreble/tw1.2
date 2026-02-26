@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
-import { SafeAreaView, StyleSheet, ActivityIndicator, View } from 'react-native';
+import { SafeAreaView, StyleSheet, ActivityIndicator, View, Platform } from 'react-native';
 import ChatScreen from './src/screens/ChatScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import { useAuth } from './src/hooks/useAuth';
@@ -7,8 +7,11 @@ import { useAuth } from './src/hooks/useAuth';
 export default function App() {
   const { isAuthenticated, loading } = useAuth();
 
+  // TEMPORARY: Skip auth on web for preview
+  const skipAuth = Platform.OS === 'web';
+
   // Show loading spinner while checking auth state
-  if (loading) {
+  if (loading && !skipAuth) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
@@ -21,7 +24,7 @@ export default function App() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
-      {isAuthenticated ? <ChatScreen /> : <LoginScreen />}
+      {(isAuthenticated || skipAuth) ? <ChatScreen /> : <LoginScreen />}
     </SafeAreaView>
   );
 }
