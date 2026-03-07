@@ -5,8 +5,8 @@ import { supabase } from './supabase';
 
 // Configure Google Sign-In
 GoogleSignin.configure({
-  webClientId: ''; // Will be set via environment variable in production
-  iosClientId: ''; // Will be set via environment variable in production
+  webClientId: '', // Will be set via environment variable in production
+  iosClientId: '', // Will be set via environment variable in production
 });
 
 export class AuthService {
@@ -98,7 +98,7 @@ export class AuthService {
   async signOut() {
     try {
       // Sign out from Google if signed in
-      if (await GoogleSignin.isSignedIn()) {
+      if (GoogleSignin.hasPreviousSignIn()) {
         await GoogleSignin.signOut();
       }
 
