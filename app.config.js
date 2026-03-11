@@ -11,6 +11,8 @@ export default {
       apiUrl: process.env.API_URL || "http://localhost:3000",
       supabaseUrl: process.env.SUPABASE_URL || "https://gbcptmhtegfbntbhithe.supabase.co",
       supabaseAnonKey: process.env.SUPABASE_ANON_KEY || "sb_publishable_r_y3Ccjz6UJoe1ijd6GfKg_oMJ-T_DO",
+      googleWebClientId: process.env.GOOGLE_WEB_CLIENT_ID || "",
+      googleIosClientId: process.env.GOOGLE_IOS_CLIENT_ID || "",
       eas: {
         projectId: "your-project-id-here" // Will be set by eas build:configure
       }

@@ -2,11 +2,12 @@ import { Platform } from 'react-native';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { supabase } from './supabase';
+import Constants from 'expo-constants';
 
 // Configure Google Sign-In
 GoogleSignin.configure({
-  webClientId: ''; // Will be set via environment variable in production
-  iosClientId: ''; // Will be set via environment variable in production
+  webClientId: Constants.expoConfig?.extra?.googleWebClientId || '',
+  iosClientId: Constants.expoConfig?.extra?.googleIosClientId || '',
 });
 
 export class AuthService {
